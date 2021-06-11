@@ -12,9 +12,13 @@
 package alluxio.stress;
 
 import alluxio.stress.cli.client.StressClientIOBench;
+import alluxio.stress.client.ClientIOOperation;
+import alluxio.stress.client.ClientIOParameters;
 
+import org.junit.Assert;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 
 /**
@@ -25,7 +29,6 @@ public class StressClientIOBenchIntegrationTest extends AbstractStressBenchInteg
   public void readIO() throws Exception {
     // All the reads are in the same test, to re-use write results.
     // Only in-process will work for unit testing.
-
     String output1 = new StressClientIOBench().run(new String[] {
         "--in-process",
         "--start-ms", Long.toString(System.currentTimeMillis() + 5000),
@@ -117,5 +120,27 @@ public class StressClientIOBenchIntegrationTest extends AbstractStressBenchInteg
         "Write", "ReadArray-NOT_RANDOM", "ReadArray-RANDOM", "ReadByteBuffer", "ReadFully",
         "PosRead-test", "PosReadFully"),
         output1, output2, output3, output4, output5, output6, output7);
+  }
+
+  @Test
+  public void ClientIOOperationConverter() throws Exception {
+    StressClientIOBench stressClientIOBench = new StressClientIOBench();
+    stressClientIOBench.run(new String[] {
+        "--in-process",
+        "--read-random",
+        "--tag", "PosRead-test",
+        "--start-ms", Long.toString(System.currentTimeMillis() + 1000),
+        "--base", sLocalAlluxioClusterResource.get().getMasterURI() + "/client/",
+        "--operation", "PosRead",
+        "--threads", "2",
+        "--file-size", "1m",
+        "--buffer-size", "128k",
+        "--warmup", "0s", "--duration", "1s",
+    });
+    Class clz = StressClientIOBench.class;
+    Field field  = clz.getDeclaredField("mParameters");
+    field.setAccessible(true);
+    ClientIOParameters param = (ClientIOParameters) field.get(stressClientIOBench);
+    Assert.assertTrue(param.mOperation == ClientIOOperation.POS_READ);
   }
 }
