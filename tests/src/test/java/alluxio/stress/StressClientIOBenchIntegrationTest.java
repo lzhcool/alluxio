@@ -12,9 +12,15 @@
 package alluxio.stress;
 
 import alluxio.stress.cli.client.StressClientIOBench;
+import alluxio.stress.client.ClientIOOperation;
+import alluxio.stress.client.ClientIOParameters;
 
+import org.junit.Assert;
 import org.junit.Test;
 
+import com.beust.jcommander.JCommander;
+
+import java.lang.reflect.Field;
 import java.util.Arrays;
 
 /**
@@ -25,7 +31,6 @@ public class StressClientIOBenchIntegrationTest extends AbstractStressBenchInteg
   public void readIO() throws Exception {
     // All the reads are in the same test, to re-use write results.
     // Only in-process will work for unit testing.
-
     String output1 = new StressClientIOBench().run(new String[] {
         "--in-process",
         "--start-ms", Long.toString(System.currentTimeMillis() + 5000),
@@ -117,5 +122,21 @@ public class StressClientIOBenchIntegrationTest extends AbstractStressBenchInteg
         "Write", "ReadArray-NOT_RANDOM", "ReadArray-RANDOM", "ReadByteBuffer", "ReadFully",
         "PosRead-test", "PosReadFully"),
         output1, output2, output3, output4, output5, output6, output7);
+  }
+
+  @Test
+  public void ParamParser() throws Exception {
+    StressClientIOBench stressClientIOBench = new StressClientIOBench();
+    JCommander jc = new JCommander(stressClientIOBench);
+    jc.setProgramName(stressClientIOBench.getClass().getSimpleName());
+    jc.parse(new String[] {
+        "--operation", "Write",
+    });
+    Class clz = StressClientIOBench.class;
+    Field field  = clz.getDeclaredField("mParameters");
+    field.setAccessible(true);
+    ClientIOParameters params =
+            (ClientIOParameters) field.get(stressClientIOBench);
+    Assert.assertTrue(params.mOperation == ClientIOOperation.WRITE);
   }
 }
