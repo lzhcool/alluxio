@@ -18,6 +18,8 @@ import alluxio.stress.client.ClientIOParameters;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.beust.jcommander.JCommander;
+
 import java.lang.reflect.Field;
 import java.util.Arrays;
 
@@ -123,24 +125,18 @@ public class StressClientIOBenchIntegrationTest extends AbstractStressBenchInteg
   }
 
   @Test
-  public void ClientIOOperationConverter() throws Exception {
+  public void ParamParser() throws Exception {
     StressClientIOBench stressClientIOBench = new StressClientIOBench();
-    stressClientIOBench.run(new String[] {
-        "--in-process",
-        "--read-random",
-        "--tag", "PosRead-test",
-        "--start-ms", Long.toString(System.currentTimeMillis() + 1000),
-        "--base", sLocalAlluxioClusterResource.get().getMasterURI() + "/client/",
-        "--operation", "PosRead",
-        "--threads", "2",
-        "--file-size", "1m",
-        "--buffer-size", "128k",
-        "--warmup", "0s", "--duration", "1s",
+    JCommander jc = new JCommander(stressClientIOBench);
+    jc.setProgramName(stressClientIOBench.getClass().getSimpleName());
+    jc.parse(new String[] {
+        "--operation", "Write",
     });
     Class clz = StressClientIOBench.class;
     Field field  = clz.getDeclaredField("mParameters");
     field.setAccessible(true);
-    ClientIOParameters param = (ClientIOParameters) field.get(stressClientIOBench);
-    Assert.assertTrue(param.mOperation == ClientIOOperation.POS_READ);
+    ClientIOParameters params =
+            (ClientIOParameters) field.get(stressClientIOBench);
+    Assert.assertTrue(params.mOperation == ClientIOOperation.WRITE);
   }
 }
